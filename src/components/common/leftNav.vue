@@ -46,9 +46,7 @@ export default {
 .left-nav {
   color: #fff;
   font-size: 10px;
-  height: 100%;
-  min-width: 80px;
-  max-width: 120px;
+  max-width: 100px;
   height: 100%;
   float: left;
   background-color: #409eff;
