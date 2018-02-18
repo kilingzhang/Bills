@@ -3,8 +3,9 @@ import Vuex from 'vuex'
 
 Vue.use(Vuex)
 
-const state = {
-  token: ''
+var state = {
+  // token: '',
+  url: 'http://127.0.0.1:8000'
 }
 
 export default new Vuex.Store({

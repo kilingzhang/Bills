@@ -15,7 +15,6 @@ export default new Router({
     component: Login,
     beforeEnter: (to, from, next) => {
       // ...
-      console.log(to)
       next()
     }
   }, {
@@ -24,7 +23,6 @@ export default new Router({
     component: Welcome,
     beforeEnter: (to, from, next) => {
       // ...
-      console.log(to)
       next()
     }
   },
@@ -34,7 +32,6 @@ export default new Router({
       component: Customers,
       beforeEnter: (to, from, next) => {
         // ...
-        console.log(to)
         next()
       }
     },
@@ -44,7 +41,15 @@ export default new Router({
       component: Bills,
       beforeEnter: (to, from, next) => {
         // ...
-        console.log(to)
+        next()
+      }
+    },
+    {
+      path: '/bills',
+      name: 'bill',
+      component: Bills,
+      beforeEnter: (to, from, next) => {
+        // ...
         next()
       }
     },
@@ -54,7 +59,6 @@ export default new Router({
       component: Settings,
       beforeEnter: (to, from, next) => {
         // ...
-        console.log(to)
         next()
       }
     }

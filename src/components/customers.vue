@@ -1,5 +1,5 @@
 <template>
-  <div class="customer">
+  <div class="customer" v-loading="fullscreenLoading">
     <div class="customer-panel">
       <el-button class="add-customer-btn" @click="dialogCustomerFormVisible = !dialogCustomerFormVisible" type="primary">添加顾客</el-button>
     </div>
@@ -29,7 +29,7 @@
       </el-table-column>
     </el-table>
     <div class="pagination small-pagination hidden-md-and-up">
-      <el-pagination small layout="prev, pager, next" :total="500">
+      <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="currentPage" small layout="prev, pager, next" :total="dataTotal">
       </el-pagination>
     </div>
     <div class="pagination lg-pagination hidden-sm-and-down">
@@ -50,7 +50,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogCustomerFormVisible=false">取 消</el-button>
-        <el-button type="primary">确 定</el-button>
+        <el-button type="primary" @click="storeCustomer()">确 定</el-button>
       </div>
     </el-dialog>
 
@@ -68,7 +68,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogCustomerUpdateFormVisible=false">取 消</el-button>
-        <el-button type="primary">确 定</el-button>
+        <el-button type="primary" @click="updateCustomer()">更 新</el-button>
       </div>
     </el-dialog>
 
@@ -86,13 +86,16 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogBillsFormVisible=false">取 消</el-button>
-        <el-button type="primary">确 定</el-button>
+        <el-button type="primary" @click="storeBills()">确 定</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import store from "@/vuex/store";
+import axios from "axios";
+import { mapState } from "vuex";
 export default {
   data() {
     return {
@@ -102,71 +105,12 @@ export default {
       pageSize: 10,
       billsTitle: "",
       customerUpdateTitle: "",
-      tableData: [
-        {
-          id: 1,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 2,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 3,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 4,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 5,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 6,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 7,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 8,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 9,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        },
-        {
-          id: 10,
-          name: "韵之花(一朵）",
-          tel: "131-0418-6233",
-          remark: "韵之花(一朵）"
-        }
-      ],
+      tableData: [],
       dialogCustomerFormVisible: false,
       dialogCustomerUpdateFormVisible: false,
       dialogBillsFormVisible: false,
+      fullscreenLoading: false,
+      editId: 0,
       customerForm: {
         name: "",
         tel: "",
@@ -181,7 +125,8 @@ export default {
       billsForm: {
         name: "",
         amount: "",
-        remark: ""
+        remark: "",
+        customer_id: ""
       },
       formLabelWidth: "120px"
     };
@@ -190,6 +135,7 @@ export default {
     handleAddBills(index, row) {
       this.dialogBillsFormVisible = true;
       this.billsTitle = "添加" + row.name.trim() + " 订单";
+      this.billsForm.customer_id = row.id;
       console.log(index, row);
     },
     handleEdit(index, row) {
@@ -199,20 +145,19 @@ export default {
       this.customerUpdateForm.name = row.name;
       this.customerUpdateForm.tel = row.tel;
       this.customerUpdateForm.remark = row.remark;
+      this.editId = index;
       console.log(index, row);
     },
     handleDelete(index, row) {
       console.log(index, row);
+      this.editId = index;
       this.$confirm("此操作将永久删除" + row.name + "客户, 是否继续?", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning"
       })
         .then(() => {
-          this.$message({
-            type: "success",
-            message: "删除成功!"
-          });
+          this.deleteCustomer(row.id);
         })
         .catch(() => {
           this.$message({
@@ -223,14 +168,239 @@ export default {
     },
     handleSizeChange(val) {
       console.log(`每页 ${val} 条`);
+      this.pageSize = val;
+      this.initData();
     },
     handleCurrentChange(val) {
       console.log(`当前页: ${val}`);
+      this.currentPage = val;
+      this.initData();
     },
     linkBills(customerId) {
       this.$router.push({ path: `/bills/${customerId}` });
+    },
+    storeCustomer() {
+      const self = this;
+      self.fullscreenLoading = true;
+      axios.defaults.headers.common["token"] = this.token;
+      axios
+        .post(this.url + "/api/customers", this.customerForm)
+        .then(function(response) {
+          if (response.status) {
+            switch (response.status) {
+              case 200:
+                var data = response.data;
+                self.$alert("已创建" + data.name, "创建成功", {
+                  confirmButtonText: "ok",
+                  callback: action => {
+                    self.customerForm = {
+                      name: "",
+                      tel: "",
+                      remark: ""
+                    };
+                  }
+                });
+                break;
+            }
+          }
+          self.fullscreenLoading = false;
+        })
+        .catch(function(error) {
+          if (error.status) {
+            switch (error.status) {
+              case 422:
+                var data = error.data;
+                var msg = data.name;
+                self.$alert(msg, "参数错误", {
+                  confirmButtonText: "ok",
+                  callback: action => {}
+                });
+                break;
+            }
+          }
+          self.fullscreenLoading = false;
+        });
+    },
+    storeBills() {
+      const self = this;
+      self.fullscreenLoading = true;
+      axios.defaults.headers.common["token"] = this.token;
+      axios
+        .post(this.url + "/api/bills", this.billsForm)
+        .then(function(response) {
+          console.log(response);
+          if (response.status) {
+            switch (response.status) {
+              case 200:
+                var data = response.data;
+                self.$alert("已创建" + data.name, "创建成功", {
+                  confirmButtonText: "ok",
+                  callback: action => {
+                    self.billsForm = {
+                      name: "",
+                      amount: "",
+                      remark: ""
+                    };
+                  }
+                });
+                break;
+            }
+          }
+          self.fullscreenLoading = false;
+        })
+        .catch(function(error) {
+          console.log(error);
+          if (error.status) {
+            switch (error.status) {
+              case 422:
+                var data = error.data;
+                var msg = data.name;
+                self.$alert(msg, "参数错误", {
+                  confirmButtonText: "ok",
+                  callback: action => {}
+                });
+                break;
+            }
+          }
+          self.fullscreenLoading = false;
+        });
+    },
+    updateCustomer() {
+      const self = this;
+      axios.defaults.headers.common["token"] = this.token;
+      self.fullscreenLoading = true;
+      axios
+        .put(
+          this.url + "/api/customers/" + this.customerUpdateForm.id,
+          this.customerUpdateForm
+        )
+        .then(function(response) {
+          console.log(response);
+          if (response.status) {
+            switch (response.status) {
+              case 200:
+                var data = response.data;
+                self.$alert(data.name + "已更新", "更新成功", {
+                  confirmButtonText: "ok",
+                  callback: action => {
+                    self.tableData[self.editId].name = data.name;
+                    self.tableData[self.editId].tel = data.tel;
+                    self.tableData[self.editId].remark = data.remark;
+                    self.dialogCustomerUpdateFormVisible = false;
+                  }
+                });
+                break;
+            }
+          }
+          self.fullscreenLoading = false;
+        })
+        .catch(function(error) {
+          console.log(error);
+          if (error.status) {
+            switch (error.status) {
+              case 422:
+                var data = error.data;
+                var msg = data.name;
+                self.$alert(msg, "参数错误", {
+                  confirmButtonText: "ok",
+                  callback: action => {}
+                });
+                break;
+            }
+          }
+          self.fullscreenLoading = false;
+        });
+    },
+    deleteCustomer(id) {
+      const self = this;
+      self.fullscreenLoading = true;
+      axios.defaults.headers.common["token"] = this.token;
+      axios
+        .delete(this.url + "/api/customers/" + id)
+        .then(function(response) {
+          if (response.status == 200) {
+            var data = response.data;
+            self.tableData.splice(self.editId, 1);
+            self.$message({
+              type: "success",
+              message: "删除成功!"
+            });
+          }
+          self.fullscreenLoading = false;
+        })
+        .catch(function(error) {
+          self.fullscreenLoading = false;
+        });
+    },
+    initData() {
+      const self = this;
+      self.fullscreenLoading = true;
+      axios.defaults.headers.common["token"] = this.token;
+      axios
+        .get(
+          this.url +
+            "/api/customers?page=" +
+            this.currentPage +
+            "&limit=" +
+            this.pageSize,
+          {}
+        )
+        .then(function(response) {
+          if (response.status == 200) {
+            var data = response.data;
+            self.tableData = data.customers;
+            self.dataTotal = data.total;
+          }
+          self.fullscreenLoading = false;
+        })
+        .catch(function(error) {
+          self.fullscreenLoading = false;
+        });
     }
-  }
+  },
+  created: function() {
+    const self = this;
+    var token = this.getCookie("token");
+    this.token = token;
+    if (this.token == "") {
+      this.$alert("未登录 请登录", "您未登陆", {
+        confirmButtonText: "ok",
+        callback: action => {
+          self.$router.push({ path: `/login` });
+        }
+      });
+    } else {
+      axios.defaults.headers.common["token"] = this.token;
+      axios
+        .get(this.url + "/api/users", {})
+        .then(function(response) {
+          if (response.status == 200) {
+            var data = response.data;
+            if (data.code === 0) {
+            }
+          }
+        })
+        .catch(function(error) {
+          console.log(error);
+          if (error.response.status == 401) {
+            self.$alert("请登录后访问", "未登录", {
+              confirmButtonText: "ok",
+              callback: action => {
+                self.$router.push({ path: `/login` });
+              }
+            });
+          }
+        });
+    }
+
+    //InitData
+    this.initData();
+  },
+  computed: mapState({
+    // token: state => state.token,
+    url: state => state.url
+  }),
+  store
 };
 </script>
 

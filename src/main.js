@@ -6,6 +6,8 @@ import router from './router'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import 'element-ui/lib/theme-chalk/display.css'
+import axios from 'axios'
+
 Vue.config.productionTip = false
 Vue.use(ElementUI)
 
@@ -33,10 +35,49 @@ Vue.prototype.delCookie = (name) => {
     document.cookie = name + '=' + cval + ';expires=' + exp.toGMTString()
 }
 
+Vue.prototype.toDate = (date) => {
+  // 获取当前月份
+  var nowMonth = date.getMonth() + 1
+
+  // 获取当前是几号
+  var strDate = date.getDate()
+
+  // 添加分隔符“-”
+  var seperator = '-'
+
+  // 对月份进行处理，1-9月在前面添加一个“0”
+  if (nowMonth >= 1 && nowMonth <= 9) {
+    nowMonth = '0' + nowMonth
+  }
+
+  // 对月份进行处理，1-9号在前面添加一个“0”
+  if (strDate >= 0 && strDate <= 9) {
+    strDate = '0' + strDate
+  }
+
+  // 最后拼接字符串，得到一个格式为(yyyy-MM-dd)的日期
+  return date.getFullYear() + seperator + nowMonth + seperator + strDate
+}
+
+axios.interceptors.response.use(
+  response => {
+    return response
+  },
+  function (error) {
+    // Do something with response error
+    if (error.response.status === 401) {
+      console.log('unauthorized, logging out ...')
+      return Promise.reject(error)
+    }
+    return Promise.reject(error.response)
+  }
+)
+
 /* eslint-disable no-new */
 new Vue({
   el: '#app',
   router,
-  components: { App},
+  components: {
+  App},
   template: '<App/>'
 })
