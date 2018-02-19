@@ -413,7 +413,7 @@ export default {
   margin: 0 auto 0 auto;
 }
 .customer-panel {
-  margin-top: 10%;
+  margin-top: 20px;
   width: 100%;
 }
 .add-customer-btn {

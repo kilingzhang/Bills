@@ -6,16 +6,25 @@
       <el-col :span="8">
         <el-card class="panel income-panel">
           <span>今日收入</span>
+          <br>
+          <br>
+          <span>{{amount}}</span>
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card class="panel customer-panel">
           <span>今日顾客</span>
+           <br>
+           <br>
+          <span>{{customers}}</span>
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card class="panel bills-panel">
           <span>今日账单</span>
+           <br>
+           <br>
+          <span>{{bills}}</span>
         </el-card>
       </el-col>
     </el-row>
@@ -29,8 +38,16 @@ import { mapState } from "vuex";
 export default {
   data: function() {
     return {
-      token: ""
+      token: "",
+      bills:"",
+      customers:"",
+      amount:"",
     };
+  },
+  methods:{
+    initData(){
+      
+    }
   },
   created: function() {
     const self = this;
@@ -51,6 +68,9 @@ export default {
           if (response.status == 200) {
             var data = response.data;
             if (data.code === 0) {
+                self.amount = data.amount.count;
+                self.customers = data.customers.count;
+                self.bills = data.bills.count;
             }
           }
         })
@@ -64,6 +84,7 @@ export default {
             });
           }
         });
+        this.initData();
     }
   },
   computed: mapState({

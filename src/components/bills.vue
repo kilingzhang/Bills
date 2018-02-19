@@ -5,13 +5,16 @@
       <el-alert v-if="customerId != null" class="elalert" :title="customerName" type="info" :closable=false description="">
       </el-alert>
       <el-button v-if="customerId != null" type="primary" @click="dialogBillsFormVisible = true">添加账单</el-button>
-      <el-button type="warning" @click="deleteThreeBills">一键删除季度账单</el-button>
+      <el-button type="warning" @click="deleteThreeBills()">一键删除季度账单</el-button>
+      <el-button type="success" @click="all()">全部账单</el-button>
       <div class="bills-date-block">
         <el-date-picker v-model="selectDate" align="right" type="date" placeholder="选择日期" :picker-options="pickerOptions">
         </el-date-picker>
       </div>
       <el-table :data="billsData" border show-summary style="width: 100%">
         <el-table-column prop="id" label="ID" width="180">
+        </el-table-column>
+         <el-table-column prop="customer_name" label="顾客" width="180">
         </el-table-column>
         <el-table-column prop="name" label="账单">
         </el-table-column>
@@ -86,8 +89,10 @@ export default {
       customerId: this.$route.params.customerId,
       dialogBillsFormVisible: false,
       dialogBillsUpdateFormVisible: false,
+      isAll: false,
       dataTotal: 400,
       currentPage: 1,
+      date: "",
       pageSizes: [10, 20, 30, 40],
       pageSize: 10,
       fullscreenLoading: false,
@@ -151,6 +156,31 @@ export default {
       this.editId = index;
       console.log(index, row);
     },
+    deleteThreeBills() {
+      const self = this;
+      self.fullscreenLoading = true;
+      this.$confirm("是否删除前三个月内的订单信息(" + this.date + ")", "删除", {
+        confirmButtonText: "是",
+        cancelButtonText: "否",
+        type: "warning"
+      })
+        .then(() => {
+          axios
+            .delete(this.url + "/api/customers/" + this.customerId + "/bills")
+            .then(function(response) {
+              console.log(response);
+              self.fullscreenLoading = false;
+              self.$alert("已删除数据" + response.data + "条", "清空成功", {
+                confirmButtonText: "ok",
+                callback: action => {}
+              });
+            })
+            .catch(function(error) {
+              console.log(error);
+            });
+        })
+        .catch(() => {});
+    },
     handleDelete(index, row) {
       console.log(index, row);
       this.editId = index;
@@ -180,6 +210,7 @@ export default {
       this.initData();
     },
     changeDate() {
+      this.isAll = false;
       this.initData();
     },
     storeBills() {
@@ -295,32 +326,62 @@ export default {
           self.fullscreenLoading = false;
         });
     },
-    deleteThreeBills() {},
+    all() {
+      this.isAll = true;
+      this.initData();
+    },
     initData() {
       console.log(this.selectDate.toLocaleString());
       const self = this;
       self.fullscreenLoading = true;
       axios.defaults.headers.common["token"] = this.token;
-      var url =
-        this.customerId != null
-          ? this.url +
-            "/api/customers/" +
-            this.customerId +
-            "/bills/" +
-            "?page=" +
-            this.currentPage +
-            "&limit=" +
-            this.pageSize +
-            "&start=" +
-            this.toDate(this.selectDate)
-          : this.url +
-            "/api/bills" +
-            "?page=" +
-            this.currentPage +
-            "&limit=" +
-            this.pageSize +
-            "&start=" +
-            this.toDate(this.selectDate);
+      if (!this.isAll) {
+        var url =
+          this.customerId != null
+            ? this.url +
+              "/api/customers/" +
+              this.customerId +
+              "/bills/" +
+              "?page=" +
+              this.currentPage +
+              "&limit=" +
+              this.pageSize +
+              "&start=" +
+              this.toDate(this.selectDate)
+            : this.url +
+              "/api/bills" +
+              "?page=" +
+              this.currentPage +
+              "&limit=" +
+              this.pageSize +
+              "&start=" +
+              this.toDate(this.selectDate);
+      } else {
+        var url =
+          this.customerId != null
+            ? this.url +
+              "/api/customers/" +
+              this.customerId +
+              "/bills/" +
+              "?page=" +
+              this.currentPage +
+              "&limit=" +
+              this.pageSize +
+              "&start=" +
+              '2016-01-01' +
+              "&end=" +
+              this.toDate(this.selectDate)
+            : this.url +
+              "/api/bills" +
+              "?page=" +
+              this.currentPage +
+              "&limit=" +
+              this.pageSize +
+              "&start=" +
+              '2016-01-01' +
+              "&end=" +
+              this.toDate(this.selectDate);
+      }
       console.log(url);
       axios
         .get(url, {})
@@ -330,6 +391,7 @@ export default {
             self.billsData = data.bills;
             self.customerName = data.customer.name;
             self.dataTotal = data.total;
+            self.date = data.date;
           }
           self.fullscreenLoading = false;
         })
