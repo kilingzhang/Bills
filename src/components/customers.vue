@@ -111,6 +111,7 @@ export default {
       dialogBillsFormVisible: false,
       fullscreenLoading: false,
       editId: 0,
+      amount: 0,
       customerForm: {
         name: "",
         tel: "",
@@ -239,7 +240,8 @@ export default {
                     self.billsForm = {
                       name: "",
                       amount: "",
-                      remark: ""
+                      remark: "",
+                      customer_id: self.billsForm.customer_id
                     };
                   }
                 });

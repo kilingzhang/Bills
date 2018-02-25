@@ -9,4 +9,5 @@ var state = {
 }
 
 export default new Vuex.Store({
-state})
+  state
+})

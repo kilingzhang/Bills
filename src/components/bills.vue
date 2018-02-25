@@ -368,7 +368,7 @@ export default {
               "&limit=" +
               this.pageSize +
               "&start=" +
-              '2016-01-01' +
+              "2016-01-01" +
               "&end=" +
               this.toDate(this.selectDate)
             : this.url +
@@ -378,7 +378,7 @@ export default {
               "&limit=" +
               this.pageSize +
               "&start=" +
-              '2016-01-01' +
+              "2016-01-01" +
               "&end=" +
               this.toDate(this.selectDate);
       }
@@ -389,9 +389,15 @@ export default {
           if (response.status == 200) {
             var data = response.data;
             self.billsData = data.bills;
-            self.customerName = data.customer.name;
             self.dataTotal = data.total;
             self.date = data.date;
+            self.amount = data.amount;
+            self.customerName =
+              data.customer.name +
+              "      " +
+              "共消费： " +
+              self.amount +
+              " 元.";
           }
           self.fullscreenLoading = false;
         })
